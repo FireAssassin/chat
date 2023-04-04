@@ -1,0 +1,10 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": false,
+        "pretty": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+    }
+}

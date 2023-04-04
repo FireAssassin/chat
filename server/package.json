@@ -1,0 +1,23 @@
+{
+  "name": "redziu-chat-server",
+  "version": "1.0.0",
+  "description": "Chat for talking",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test": "tsc && node dist/test.js"
+  },
+  "author": "grok#0113",
+  "license": "ISC",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "ws": "^8.13.0",
+    "yaml": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "@types/ws": "^8.5.4"
+  },
+  "bin": "dist/index.js"
+}

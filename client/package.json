@@ -1,0 +1,17 @@
+{
+  "name": "redziu-chat-client",
+  "version": "1.0.0",
+  "description": "Chat for talking",
+  "main": "main.js",
+  "scripts": {
+    "test": "node src/test.js",
+    "start": "node src/main.js"
+  },
+  "author": "grok#0113",
+  "license": "ISC",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "ws": "^8.13.0",
+    "yaml": "^2.2.1"
+  }
+}
