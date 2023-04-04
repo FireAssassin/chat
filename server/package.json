@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
+    "binarize": "tsc && pkg dist/index.js --out-path releases --targets node14-linux-x64,node14-macos-x64,node14-win-x64",
     "test": "tsc && node dist/test.js"
   },
   "author": "grok#0113",

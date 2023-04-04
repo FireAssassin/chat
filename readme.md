@@ -22,13 +22,12 @@ About config.yaml:
 - For every user you want to add to the server add a new user with a unique name and password. 
     eg.:
     ```
-    allowed-users: [
-        { name: "user1", password: "password1" },
+    allowed-users: 
+        - name: "user1"
+          password: "password1"
 
-        # To add new user just copy the line above and change the name and password like this:
-        { name: "user2", password: "password2" }
-
-    ]
+        - name: "user2"
+          password: "password2"
     ```
 
 If you want someone to join you need to give them:
@@ -53,7 +52,7 @@ About config.yaml:
 - SelfColor has to be a hex color code. (ex: #FF0000).
 - If you want color to be set by server(randomized) set SelfColor to any text eg. "a".
 - Host is the ip of the server you want to connect to. (ex: "localhost", "35.123.174.34").
-- Password is set by the server and is used to prevent random people from joining.
+- ServerPassword is set by the server and is used to prevent random people from joining.
 - User is also set by the server and is used to prevent random people from joining.
 - date-format is the format of the date in the chat. (ex: "DD/MM/YYYY HH:mm:ss", "HH:mm:ss").
 - Change sound to true if you want to hear a sound when someone sends a message.

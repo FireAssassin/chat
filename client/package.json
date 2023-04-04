@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "test": "node src/test.js",
-    "start": "node src/main.js"
+    "start": "node src/main.js",
+    "binarize": "pkg src/main.js --out-path releases --targets node14-linux-x64,node14-macos-x64,node14-win-x64"
   },
   "author": "grok#0113",
   "license": "ISC",

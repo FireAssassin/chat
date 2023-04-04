@@ -46,16 +46,11 @@ function readConfig() {
             "# ss - second",
         ];
         const yamlString = yaml.stringify(defaultConfig);
-        const yamlArray = yamlString.split("\n");
-        const yamlArrayWithComments = yamlArray.map((line, index) => {
-            if (index === 0) {
-                return line;
-            } else {
-                return comments[index - 1] + "\n" + line;
-            }
-        });
-        const yamlStringWithComments = yamlArrayWithComments.join("\n");
-        fs.writeFileSync("./config.yaml", yamlStringWithComments);
+        //add comments to the end of the file
+        const file = yamlString + comments.join("\r");
+
+        fs.writeFileSync("./config.yaml", file);
+        console.log("Config file created");
         process.exit(1);
     }
     const path = "./config.yaml";

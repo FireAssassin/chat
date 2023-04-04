@@ -1,20 +1,23 @@
 import { WebSocketServer } from "ws";
 import { readFileSync, existsSync, writeFileSync } from "fs";
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 import * as Crypto from "crypto";
 import { log, addHistory, getHistory } from "./log";
 
 function readConfig() {
-    if (existsSync("./config.yaml") == false) {
+    if (!existsSync("./config.yaml")) {
         console.log("[SERVER] Config file not found");
         console.log("[SERVER] Creating config file");
         const config: any = {
             port: 8080,
             ServerPassword: "password",
-            "allowed-users": [{user: "user1", password: "qazxsw"}, {user: "user2", password: "wsxzaq"}],
+            "allowed-users": [
+                { user: "user1", password: "qazxsw" },
+                { user: "user2", password: "wsxzaq" },
+            ],
             private: true,
         };
-        const file = parse(config);
+        const file = stringify(config);
         writeFileSync("config.yaml", file);
         console.log("[SERVER] Config file created");
         console.log("[SERVER] Please edit the config file");
@@ -99,7 +102,9 @@ server.on("connection", (socket, request) => {
     );
     socket.on("message", (raw) => {
         const message = JSON.parse(raw.toString());
-        if (!config["allowed-users"].includes(message.user)) {
+        if (
+            !config["allowed-users"].find((user) => user.user == message.user)
+        ) {
             console.log(
                 "[SERVER] Invalid user from",
                 request.socket.remoteAddress
@@ -112,7 +117,10 @@ server.on("connection", (socket, request) => {
                 JSON.stringify({ type: "error", message: "Invalid user" })
             );
             return;
-        } else if (config.private && message.ServerPassword != config.ServerPassword) {
+        } else if (
+            config.private &&
+            message.ServerPassword != config.ServerPassword
+        ) {
             console.log(
                 "[SERVER] Invalid password from",
                 request.socket.remoteAddress
@@ -126,7 +134,11 @@ server.on("connection", (socket, request) => {
             );
             return;
         } else {
-            if (config["allowed-users"].find((user) => user.user == message.user).password != message.password) {
+            if (
+                config["allowed-users"].find(
+                    (user) => user.user == message.user
+                ).password != message.UserPassword
+            ) {
                 console.log(
                     "[SERVER] Invalid password from",
                     request.socket.remoteAddress
