@@ -2,25 +2,68 @@ const webSocket = require("ws");
 const fs = require("fs");
 const yaml = require("yaml");
 const readline = require("readline");
+const calculate = require("../commands/calc.js");
 
 const prompt = readline.createInterface({
     input: process.stdin,
 });
 
 prompt.on("line", (input) => {
-    client.send(
-        JSON.stringify({
-            user: config.user,
-            ServerPassword: config.ServerPassword,
-            UserPassword: config.UserPassword,
-            type: "message",
-            message: input,
-        })
-    );
+    if (input[0] === "/") {
+        command(input);
+    } else {
+        client.send(
+            JSON.stringify({
+                user: config.user,
+                ServerPassword: config.ServerPassword,
+                UserPassword: config.UserPassword,
+                type: "message",
+                message: input,
+            })
+        );
+    }
 });
 
 const resetFormatString = `\x1b[0m`;
+let time = Date.now();
 let config;
+
+function command(input) {
+    const args = input.split(" ");
+    switch (args[0]) {
+        case "/help":
+            const commands = [];
+            console.log(
+                "Available commands: \n" +
+                    "/help - shows this message \n" +
+                    "/exit - exits the program \n" +
+                    "/ping - pings the server \n" +
+                    "/stats - shows clients usage stats \n" +
+                    "/calc - calculates a math expression"
+            );
+            break;
+        case "/ping":
+            time = Date.now();
+            client.ping();
+            break;
+        case "/stats":
+            const color = getColor("#fa2d2d");
+            const stats = [];
+            stats.push(`Uptime: ${process.uptime()}`);
+            stats.push(`Memory usage: ${process.memoryUsage().heapUsed}`);
+            stats.push(`Platform: ${process.platform}`);
+            stats.push(`Architecture: ${process.arch}`);
+            console.log(
+                `\x1b[38;2;${color.red};${color.green};${
+                    color.blue
+                }m ${stats.join("\n")}${resetFormatString}`
+            );
+            break;
+        case "/exit":
+            process.exit(0);
+            break;
+    }
+}
 
 function readConfig() {
     if (!fs.existsSync("./config.yaml")) {
@@ -141,6 +184,15 @@ client.on("open", () => {
             ServerPassword: config.ServerPassword,
             UserPassword: config.UserPassword,
         })
+    );
+});
+
+client.on("pong", (data) => {
+    const color = getColor("#c3ff00");
+    console.log(
+        `\x1b[38;2;${color.red};${color.green};${color.blue}m ${
+            Date.now() - time
+        }ms${resetFormatString}`
     );
 });
 

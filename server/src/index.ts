@@ -100,6 +100,15 @@ server.on("connection", (socket, request) => {
         new Date(),
         `[SERVER] New connection (${request.socket.remoteAddress})`
     );
+
+    socket.on("ping", () => {
+        socket.pong();
+    });
+
+    socket.on("pong", () => {
+        socket.ping();
+    });
+
     socket.on("message", (raw) => {
         const message = JSON.parse(raw.toString());
         if (
