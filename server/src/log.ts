@@ -14,9 +14,16 @@ function getHistory() {
     return history;
 }
 
-function addHistory(date: Date, user: string, id: string, message: string, color: string, self: boolean) {
+function addHistory(
+    date: Date,
+    user: string,
+    id: string,
+    message: string,
+    color: string,
+    self: boolean
+) {
     history.push({
-        type: "message",
+        type: "history",
         date: date,
         user: user,
         id: id,
@@ -37,8 +44,4 @@ setInterval(() => {
     }
 }, 10000);
 
-export { 
-    log,
-    getHistory,
-    addHistory
-};
+export { log, getHistory, addHistory };

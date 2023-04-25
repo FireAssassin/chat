@@ -3,70 +3,20 @@ import { readFileSync, existsSync, writeFileSync } from "fs";
 import { parse, stringify } from "yaml";
 import * as Crypto from "crypto";
 import { log, addHistory, getHistory } from "./log";
+import { readConfig, getConfig, DateFormat, id, getColor } from "./usefull";
 
-function readConfig() {
-    if (!existsSync("./config.yaml")) {
-        console.log("[SERVER] Config file not found");
-        console.log("[SERVER] Creating config file");
-        const config: any = {
-            port: 8080,
-            ServerPassword: "password",
-            "allowed-users": [
-                { user: "user1", password: "qazxsw" },
-                { user: "user2", password: "wsxzaq" },
-            ],
-            private: true,
-        };
-        const file = stringify(config);
-        writeFileSync("config.yaml", file);
-        console.log("[SERVER] Config file created");
-        console.log("[SERVER] Please edit the config file");
-        process.exit(0);
-    }
-    const path = "./config.yaml";
-    const file = readFileSync(path, "utf8");
-    config = parse(file);
+type user = {
+    id: string,
+    user: string,
+    socket: Socket,
+    color: string,
 }
 
-function DateFormat(date: Date) {
-    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+type color = {
+    hex: `#${string}`,
 }
 
-/* function DateFormatJSON(date: Date) {
-    const DateJSON = {
-        year: date.getFullYear(),
-        month: date.getMonth(),
-        day: date.getDate(),
-        hour: date.getHours(),
-        minute: date.getMinutes(),
-        second: date.getSeconds(),
-    };
-    return DateJSON;
-} */
-
-const id = () => {
-    return Crypto.randomBytes(4).toString("hex");
-};
-
-function getColor(hex) {
-    if (hex === undefined) {
-        return { red: 0, green: 0, blue: 0, error: true };
-    } else if (hex.length !== 7 && hex.length !== 6) {
-        return { red: 0, green: 0, blue: 0, error: true };
-    } else if (hex[0] === "#") {
-        const red = parseInt(hex.substr(1, 2), 16);
-        const green = parseInt(hex.substr(3, 2), 16);
-        const blue = parseInt(hex.substr(5, 2), 16);
-        return { red: red, green: green, blue: blue, error: false };
-    } else if (hex[0] !== "#") {
-        const red = parseInt(hex.substr(0, 2), 16);
-        const green = parseInt(hex.substr(2, 2), 16);
-        const blue = parseInt(hex.substr(4, 2), 16);
-        return { red: red, green: green, blue: blue, error: false };
-    }
-}
-
-const colors = [
+const colors: color[] = [
     "#fa2d2d",
     "#fa4b00",
     "#ffbb00",
@@ -83,172 +33,62 @@ const colors = [
     "#ff0051",
 ];
 
-let config;
 readConfig();
-let users: any = [];
+let config = getConfig();
+let users: user[] = [];
 
 const server = new WebSocketServer({ port: config.port });
 
 server.once("listening", () => {
     console.log("[SERVER] Listening on port", config.port);
-    log(new Date(), `[SERVER] Listening on port ${config.port}`);
 });
 
 server.on("connection", (socket, request) => {
-    console.log("[SERVER] New connection (", request.socket.remoteAddress, ")");
-    log(
-        new Date(),
-        `[SERVER] New connection (${request.socket.remoteAddress})`
-    );
+    console.log(`[SERVER] New connection (${request.socket.remoteAddress})`);
 
     socket.on("ping", () => {
         socket.pong();
     });
 
-    socket.on("pong", () => {
-        socket.ping();
-    });
-
     socket.on("message", (raw) => {
-        const message = JSON.parse(raw.toString());
-        if (
-            !config["allowed-users"].find((user) => user.user == message.user)
-        ) {
-            console.log(
-                "[SERVER] Invalid user from",
-                request.socket.remoteAddress
-            );
-            log(
-                new Date(),
-                `[SERVER] Invalid user from ${request.socket.remoteAddress}`
-            );
+        if (users.length >= config["max-users"]) {
             socket.send(
-                JSON.stringify({ type: "error", message: "Invalid user" })
+                JSON.stringify({
+                    type: "error",
+                    message: "Server is full",
+                })
             );
+            socket.close();
             return;
-        } else if (
-            config.private &&
-            message.ServerPassword != config.ServerPassword
-        ) {
-            console.log(
-                "[SERVER] Invalid password from",
-                request.socket.remoteAddress
-            );
-            log(
-                new Date(),
-                `[SERVER] Invalid password from ${request.socket.remoteAddress}`
-            );
-            socket.send(
-                JSON.stringify({ type: "error", message: "Invalid password" })
-            );
-            return;
-        } else {
-            if (
-                config["allowed-users"].find(
-                    (user) => user.user == message.user
-                ).password != message.UserPassword
-            ) {
-                console.log(
-                    "[SERVER] Invalid password from",
-                    request.socket.remoteAddress
-                );
-                log(
-                    new Date(),
-                    `[SERVER] Invalid password from ${request.socket.remoteAddress}`
-                );
-                socket.send(
-                    JSON.stringify({
-                        type: "error",
-                        message: "Invalid password",
-                    })
-                );
+        }
+
+        try {
+            const data = JSON.parse(raw.toString());
+
+            if (config["anyone-can-join"]) {
                 return;
             }
-            if (!users.find((user) => user.socket == socket)) {
-                users.push({
-                    id: id(),
-                    socket: socket,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                });
-                console.log(
-                    "[SERVER] Valid password from",
-                    request.socket.remoteAddress
-                );
-                log(
-                    new Date(),
-                    `[SERVER] Valid password from ${request.socket.remoteAddress}`
-                );
-                socket.send(
-                    JSON.stringify({
-                        type: "success",
-                        message: "Valid password",
-                    })
-                );
-            }
-            if (message.type == "message") {
-                const message = JSON.parse(raw.toString());
-                const date = DateFormat(new Date());
-                const UserID = users.find((user) => user.socket == socket).id;
-                const UserColor = users.find(
-                    (user) => user.socket == socket
-                ).color;
-                const color = getColor(UserColor);
-                const resetFormatString = `\x1b[0m`;
-                const fgColorString = `\x1b[38;2;${color?.red};${color?.green};${color?.blue}m`;
-                const ToSend = `${fgColorString}${date} [${message.user} ${UserID}] ${message.message}${resetFormatString}`;
-                console.log(ToSend);
-                log(new Date(), ToSend);
-                addHistory(
-                    new Date(),
-                    message.user,
-                    UserID,
-                    message.message,
-                    UserColor,
-                    false
-                );
-                users.forEach((client) => {
-                    if (client.socket == socket) {
-                        client.socket.send(
-                            JSON.stringify({
-                                type: "message",
-                                date: new Date(),
-                                user: message.user,
-                                id: UserID,
-                                message: message.message,
-                                color: UserColor,
-                                self: true,
-                            })
-                        );
-                    } else {
-                        client.socket.send(
-                            JSON.stringify({
-                                type: "message",
-                                date: new Date(),
-                                user: message.user,
-                                id: UserID,
-                                message: message.message,
-                                color: UserColor,
-                                self: false,
-                            })
-                        );
-                    }
-                });
-            } else if (message.type == "history") {
-                getHistory().forEach((message) => {
-                    socket.send(JSON.stringify(message));
-                });
+            if (config.private) {
+                return;
             }
         }
-    });
+
+        catch (error) {
+            socket.send(
+                JSON.stringify({
+                    type: "error",
+                    message: "Invalid message format. If you tried to crash the server, you failed :D",
+                })
+            )
+            socket.close();
+            return;
+        }
+    })
     socket.on("close", () => {
         console.log(
             "[SERVER] Connection closed (",
             request.socket.remoteAddress,
             ")"
-        );
-        log(
-            new Date(),
-            `[SERVER] Connection closed (${request.socket.remoteAddress})`
         );
         users = users.filter((user) => user.socket != socket);
     });

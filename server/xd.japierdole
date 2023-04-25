@@ -1,0 +1,85 @@
+MAIN
+{
+
+    if users.lenght >= max-users then
+
+        send error message to client "Server is full"
+        return;
+
+    try parsing message to JSON 
+
+        if there was an error then
+
+            send error message to client "Invalid message format. If you tried to crash the server, you failed :D"
+
+
+    Check if everyone can join server
+
+        if yes then
+
+            search users[]( socket ) and if there is not any user with this socket then
+                add user to users[]
+                send motd;
+
+            switch(message.type)
+
+                if "message"
+
+                    send message to everyone
+
+            return;
+
+    Check if private is enabled
+
+        if yes then
+
+            search allowed-users to find user that's user and password match with message.user and message.password
+
+                if yes then
+
+                    search users[]( socket ) and if there is not any user with this socket then
+                        add user to users[]
+                        send motd;
+
+                    switch(message.type)
+
+                        if "message"
+
+                            send message to everyone
+
+                    stop;
+
+                if not then
+
+                    send error message to client "Invalid user or password"
+
+                stop;
+
+        if not then
+
+            search allowed-users to find user
+
+                if yes then
+
+                    search users[]( socket ) and if there is not any user with this socket then
+                        add user to users[]
+                        send motd;
+
+                    switch(message.type)
+
+                        if "message"
+
+                            send message to everyone
+
+                    stop;
+
+                if not then
+
+                    send error message to client "Invalid user"
+
+                stop;
+            
+        return;
+
+    done;
+}
