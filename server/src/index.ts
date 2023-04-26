@@ -6,15 +6,23 @@ import { log, addHistory, getHistory } from "./log";
 import { readConfig, getConfig, DateFormat, id, getColor } from "./usefull";
 
 type user = {
-    id: string,
-    user: string,
-    socket: Socket,
-    color: string,
-}
+    id: string;
+    user: string;
+    socket: Socket;
+    color: string;
+};
+
+type data = {
+    type: "message" | "history";
+    user: user;
+    message: string;
+    "server-password"?: string;
+    password?: string;
+};
 
 type color = {
-    hex: `#${string}`,
-}
+    hex: `#${string}`;
+};
 
 const colors: color[] = [
     "#fa2d2d",
@@ -69,18 +77,31 @@ server.on("connection", (socket, request) => {
 
             // * Check if anyone can join is enabled
             if (config["anyone-can-join"]) {
-                if (!users.find((user) => user.socket == socket)) {
-                    users.push({
-                        id: id(),
-                        user: data.user,
-                        socket: socket,
-                        color: getColor(),
-                    });
+                if (data.user.match(/[^a-zA-Z0-9]/g)) {
+                    if (!users.find((user) => user.socket == socket)) {
+                        users.push({
+                            id: id(),
+                            user: data.user,
+                            socket: socket,
+                            color: getColor(),
+                        });
+                    }
+
+                    let user = users.find((user) => user.socket == socket);
+
+                    handle(user, data);
+
+                    return;
+                } else {
+                    socket.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Invalid username",
+                        })
+                    );
+                    socket.close();
+                    return;
                 }
-
-                handle(data);
-
-                return;
             }
 
             // * Check if server is private
@@ -98,36 +119,46 @@ server.on("connection", (socket, request) => {
                 }
 
                 // * Check if user is logged in
-                if (!users.find((user) => user.socket == socket)) {
-
-                    // * Login
-                    if (
-                        config["allowed-users"].find((user) => 
-                        user.user == data.user && 
-                        user.password == data.password)
-                    ) {
-                        users.push({
-                            id: id(),
-                            user: data.user,
-                            socket: socket,
-                            color: getColor(),
-                        });
-                    }
+                if (
+                    config["allowed-users"].find(
+                        (user) =>
+                            user.user == data.user &&
+                            user.password == data.password
+                    )
+                ) {
+                    users.push({
+                        id: id(),
+                        user: data.user,
+                        socket: socket,
+                        color: getColor(),
+                    });
+                } else {
+                    socket.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Invalid username or password",
+                        })
+                    );
+                    socket.close();
+                    return;
                 }
+                let user = users.find((user) => user.socket == socket);
 
-                handle(data);
+                handle(user, data);
 
                 return;
+            
+            // * When server is not private (meaning server password is not required)
             } else {
-
                 // * Check if user is logged in
                 if (!users.find((user) => user.socket == socket)) {
-
                     // * Login
                     if (
-                        config["allowed-users"].find((user) => 
-                        user.user == data.user && 
-                        user.password == data.password)
+                        config["allowed-users"].find(
+                            (user) =>
+                                user.user == data.user &&
+                                user.password == data.password
+                        )
                     ) {
                         users.push({
                             id: id(),
@@ -147,24 +178,23 @@ server.on("connection", (socket, request) => {
                     }
                 }
 
-                handle(data);
-
+                let user = users.find((user) => user.socket == socket);
+                handle(user, data);
                 return;
             }
-        }
-
-        // ! Handle errors
-        catch (error) {
+        } catch (error) {
+            // ! Handle errors
             socket.send(
                 JSON.stringify({
                     type: "error",
-                    message: "Invalid message format. If you tried to crash the server, you failed :D",
+                    message:
+                        "Invalid message format. If you tried to crash the server, you failed :D",
                 })
-            )
+            );
             socket.close();
             return;
         }
-    })
+    });
     socket.on("close", () => {
         console.log(
             "[SERVER] Connection closed (",
@@ -184,3 +214,21 @@ server.on("error", (error) => {
     console.log("[SERVER] Error:", error);
     log(new Date(), `[SERVER] Error: ${error}`);
 });
+
+function handle(req: user, data: data) {
+    switch (data.type) {
+        case "history": {
+            req.socket.send(
+                JSON.stringify({
+                    type: "history",
+                    history: getHistory(),
+                })
+            );
+        }
+        case "message": {
+            if (data.message.length > 0) {
+        
+            }
+        }
+    }
+}
