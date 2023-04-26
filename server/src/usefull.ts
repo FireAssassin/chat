@@ -6,7 +6,7 @@ function readConfig() {
         console.log("[SERVER] Creating config file");
         const config: any = {
             port: 8080,
-            ServerPassword: "password",
+            "server-password": "password",
             "allowed-users": [
                 { user: "user1", password: "qazxsw" },
                 { user: "user2", password: "wsxzaq" },
@@ -56,9 +56,12 @@ const id = () => {
     return Crypto.randomBytes(4).toString("hex");
 };
 
-function getColor(hex) {
+function getColor(hex?) {
     if (hex === undefined) {
-        return { red: 0, green: 0, blue: 0, error: true };
+        const red = Math.floor(Math.random() * 256);
+        const green = Math.floor(Math.random() * 256);
+        const blue = Math.floor(Math.random() * 256);
+        return { red: red, green: green, blue: blue, error: false };
     } else if (hex.length !== 7 && hex.length !== 6) {
         return { red: 0, green: 0, blue: 0, error: true };
     } else if (hex[0] === "#") {

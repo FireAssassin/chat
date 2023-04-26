@@ -51,6 +51,7 @@ server.on("connection", (socket, request) => {
     });
 
     socket.on("message", (raw) => {
+        // ! Check if server is full
         if (users.length >= config["max-users"]) {
             socket.send(
                 JSON.stringify({
@@ -62,17 +63,97 @@ server.on("connection", (socket, request) => {
             return;
         }
 
+        // ! Handle data
         try {
             const data = JSON.parse(raw.toString());
 
+            // * Check if anyone can join is enabled
             if (config["anyone-can-join"]) {
+                if (!users.find((user) => user.socket == socket)) {
+                    users.push({
+                        id: id(),
+                        user: data.user,
+                        socket: socket,
+                        color: getColor(),
+                    });
+                }
+
+                handle(data);
+
                 return;
             }
+
+            // * Check if server is private
             if (config.private) {
+                // ! Check if user send correct server password
+                if (data["server-password"] != config["server-password"]) {
+                    socket.send(
+                        JSON.stringify({
+                            type: "error",
+                            message: "Invalid server password",
+                        })
+                    );
+                    socket.close();
+                    return;
+                }
+
+                // * Check if user is logged in
+                if (!users.find((user) => user.socket == socket)) {
+
+                    // * Login
+                    if (
+                        config["allowed-users"].find((user) => 
+                        user.user == data.user && 
+                        user.password == data.password)
+                    ) {
+                        users.push({
+                            id: id(),
+                            user: data.user,
+                            socket: socket,
+                            color: getColor(),
+                        });
+                    }
+                }
+
+                handle(data);
+
+                return;
+            } else {
+
+                // * Check if user is logged in
+                if (!users.find((user) => user.socket == socket)) {
+
+                    // * Login
+                    if (
+                        config["allowed-users"].find((user) => 
+                        user.user == data.user && 
+                        user.password == data.password)
+                    ) {
+                        users.push({
+                            id: id(),
+                            user: data.user,
+                            socket: socket,
+                            color: getColor(),
+                        });
+                    } else {
+                        socket.send(
+                            JSON.stringify({
+                                type: "error",
+                                message: "Invalid username or password",
+                            })
+                        );
+                        socket.close();
+                        return;
+                    }
+                }
+
+                handle(data);
+
                 return;
             }
         }
 
+        // ! Handle errors
         catch (error) {
             socket.send(
                 JSON.stringify({
