@@ -3,7 +3,14 @@ import { readFileSync, existsSync, writeFileSync } from "fs";
 import { parse, stringify } from "yaml";
 import * as Crypto from "crypto";
 import { log, addHistory, getHistory } from "./log";
-import { readConfig, getConfig, DateFormat, id, getColor } from "./usefull";
+import {
+    id,
+    sendError,
+    readConfig,
+    getConfig,
+    DateFormat,
+    getColor,
+} from "./usefull";
 
 type user = {
     id: string;
@@ -14,8 +21,9 @@ type user = {
 
 type data = {
     type: "message" | "history";
-    user: user;
+    user: string;
     message: string;
+    password: string,
     "server-password"?: string;
     password?: string;
 };
@@ -61,13 +69,7 @@ server.on("connection", (socket, request) => {
     socket.on("message", (raw) => {
         // ! Check if server is full
         if (users.length >= config["max-users"]) {
-            socket.send(
-                JSON.stringify({
-                    type: "error",
-                    message: "Server is full",
-                })
-            );
-            socket.close();
+            sendError(socket, "Server is full!");
             return;
         }
 
@@ -86,39 +88,23 @@ server.on("connection", (socket, request) => {
                             color: getColor(),
                         });
                     }
-
                     let user = users.find((user) => user.socket == socket);
-
                     handle(user, data);
-
-                    return;
-                } else {
-                    socket.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Invalid username",
-                        })
-                    );
-                    socket.close();
-                    return;
-                }
+                } else sendError(socket, "Invalid username");
+                return;
             }
 
             // * Check if server is private
             if (config.private) {
                 // ! Check if user send correct server password
                 if (data["server-password"] != config["server-password"]) {
-                    socket.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Invalid server password",
-                        })
-                    );
-                    socket.close();
+                    sendError(socket, "Invalid server password");
                     return;
                 }
+            }
 
-                // * Check if user is logged in
+            if (!users.find((user) => user.socket == socket)) {
+                // * Login
                 if (
                     config["allowed-users"].find(
                         (user) =>
@@ -133,73 +119,23 @@ server.on("connection", (socket, request) => {
                         color: getColor(),
                     });
                 } else {
-                    socket.send(
-                        JSON.stringify({
-                            type: "error",
-                            message: "Invalid username or password",
-                        })
-                    );
-                    socket.close();
+                    sendError(socket, "Invalid username or password");
                     return;
                 }
-                let user = users.find((user) => user.socket == socket);
-
-                handle(user, data);
-
-                return;
-            
-            // * When server is not private (meaning server password is not required)
-            } else {
-                // * Check if user is logged in
-                if (!users.find((user) => user.socket == socket)) {
-                    // * Login
-                    if (
-                        config["allowed-users"].find(
-                            (user) =>
-                                user.user == data.user &&
-                                user.password == data.password
-                        )
-                    ) {
-                        users.push({
-                            id: id(),
-                            user: data.user,
-                            socket: socket,
-                            color: getColor(),
-                        });
-                    } else {
-                        socket.send(
-                            JSON.stringify({
-                                type: "error",
-                                message: "Invalid username or password",
-                            })
-                        );
-                        socket.close();
-                        return;
-                    }
-                }
-
-                let user = users.find((user) => user.socket == socket);
-                handle(user, data);
-                return;
             }
+
+            let user = users.find((user) => user.socket == socket);
+            handle(user, data);
+            return;
         } catch (error) {
             // ! Handle errors
-            socket.send(
-                JSON.stringify({
-                    type: "error",
-                    message:
-                        "Invalid message format. If you tried to crash the server, you failed :D",
-                })
-            );
-            socket.close();
+            sendError(socket, "Invalid message format. If you tried to crash the server, you failed :D");
             return;
         }
     });
     socket.on("close", () => {
         console.log(
-            "[SERVER] Connection closed (",
-            request.socket.remoteAddress,
-            ")"
+            `[SERVER] Connection closed (${request.socket.remoteAddress})`
         );
         users = users.filter((user) => user.socket != socket);
     });
@@ -207,12 +143,10 @@ server.on("connection", (socket, request) => {
 
 server.on("close", () => {
     console.log("[SERVER] Closed");
-    log(new Date(), `[SERVER] Closed`);
 });
 
 server.on("error", (error) => {
     console.log("[SERVER] Error:", error);
-    log(new Date(), `[SERVER] Error: ${error}`);
 });
 
 function handle(req: user, data: data) {
@@ -227,7 +161,27 @@ function handle(req: user, data: data) {
         }
         case "message": {
             if (data.message.length > 0) {
-        
+                addHistory(
+                    new Date().getTime(),
+                    data.user,
+                    req.id,
+                    data.message,
+                    req.color,
+                )
+                users.forEach((user) => {
+                    const self = user.socket == req.socket;
+                    user.socket.send(
+                        JSON.stringify({
+                            type: "message",
+                            user: data.user,
+                            id: req.id,
+                            message: data.message,
+                            color: req.color,
+                            time: new Date().getTime(),
+                            self: self,
+                        })
+                    )
+                })
             }
         }
     }

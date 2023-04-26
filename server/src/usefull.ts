@@ -1,5 +1,19 @@
 let config;
 
+const id = () => {
+    return Crypto.randomBytes(4).toString("hex");
+};
+
+const sendError = (ws, error) => {
+    ws.send(
+        JSON.stringify({
+            type: "error",
+            error: error,
+        })
+    );
+    ws.close();
+};
+
 function readConfig() {
     if (!existsSync("./config.yaml")) {
         console.log("[SERVER] Config file not found");
@@ -52,10 +66,6 @@ function DateFormatJSON(date: Date) {
     return DateJSON;
 }
 
-const id = () => {
-    return Crypto.randomBytes(4).toString("hex");
-};
-
 function getColor(hex?) {
     if (hex === undefined) {
         const red = Math.floor(Math.random() * 256);
@@ -77,4 +87,4 @@ function getColor(hex?) {
     }
 }
 
-export { readConfig, getConfig, DateFormat, DateFormatJSON, id, getColor };
+export { id, sendError, readConfig, getConfig, DateFormat, DateFormatJSON, getColor };

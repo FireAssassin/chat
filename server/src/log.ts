@@ -1,17 +1,17 @@
 import { appendFile } from "fs";
 
-const ToLog: any[] = [];
+/* const ToLog: any[] = []; */
 const history: any[] = [];
 
-function log(date: Date, message: string) {
+/* function log(date: Date, message: string) {
     ToLog.push({
         date: date,
         message: message,
     });
-}
+} */
 
-function getHistory() {
-    return history;
+function getHistory(limit = 100) {
+    return history.slice(-limit);
 }
 
 function addHistory(
@@ -20,20 +20,19 @@ function addHistory(
     id: string,
     message: string,
     color: string,
-    self: boolean
 ) {
     history.push({
-        type: "history",
+        type: "message",
         date: date,
         user: user,
         id: id,
         message: message,
         color: color,
-        self: self,
+        self: false,
     });
 }
 
-setInterval(() => {
+/* setInterval(() => {
     if (ToLog.length > 0) {
         appendFile("log.txt", JSON.stringify(ToLog), (err) => {
             if (err) {
@@ -42,6 +41,6 @@ setInterval(() => {
         });
         ToLog.length = 0;
     }
-}, 10000);
+}, 10000); */
 
-export { log, getHistory, addHistory };
+export { /* log, */ getHistory, addHistory };
