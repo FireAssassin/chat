@@ -1,8 +1,6 @@
-import { WebSocketServer } from "ws";
-import { readFileSync, existsSync, writeFileSync } from "fs";
-import { parse, stringify } from "yaml";
-import * as Crypto from "crypto";
-import { log, addHistory, getHistory } from "./log";
+import { WebSocketServer, WebSocket } from "ws";
+import { addHistory, getHistory } from "./log";
+import { Calculate } from "./calc";
 import {
     id,
     sendError,
@@ -15,39 +13,26 @@ import {
 type user = {
     id: string;
     user: string;
-    socket: Socket;
-    color: string;
+    socket: WebSocket;
+    color: color;
 };
 
 type data = {
-    type: "message" | "history";
+    type: "message" | "history" | "error" | "motd" | "command";
     user: string;
     message: string;
-    password: string,
     "server-password"?: string;
     password?: string;
+    limit?: number;
+    arguments?: string[];
 };
 
 type color = {
-    hex: `#${string}`;
+    red: number;
+    green: number;
+    blue: number;
+    error: boolean;
 };
-
-const colors: color[] = [
-    "#fa2d2d",
-    "#fa4b00",
-    "#ffbb00",
-    "#c3ff00",
-    "#7bff00",
-    "#1eff00",
-    "#00ffc3",
-    "#00d5ff",
-    "#0073ff",
-    "#002fff",
-    "#6f00ff",
-    "#b300ff",
-    "#ff0084",
-    "#ff0051",
-];
 
 readConfig();
 let config = getConfig();
@@ -77,6 +62,15 @@ server.on("connection", (socket, request) => {
         try {
             const data = JSON.parse(raw.toString());
 
+            // * Check if server is private
+            if (config.private) {
+                // ! Check if user send correct server password
+                if (data["server-password"] != config["server-password"]) {
+                    sendError(socket, "Invalid server password");
+                    return;
+                }
+            }
+
             // * Check if anyone can join is enabled
             if (config["anyone-can-join"]) {
                 if (data.user.match(/[^a-zA-Z0-9]/g)) {
@@ -92,15 +86,6 @@ server.on("connection", (socket, request) => {
                     handle(user, data);
                 } else sendError(socket, "Invalid username");
                 return;
-            }
-
-            // * Check if server is private
-            if (config.private) {
-                // ! Check if user send correct server password
-                if (data["server-password"] != config["server-password"]) {
-                    sendError(socket, "Invalid server password");
-                    return;
-                }
             }
 
             if (!users.find((user) => user.socket == socket)) {
@@ -129,7 +114,11 @@ server.on("connection", (socket, request) => {
             return;
         } catch (error) {
             // ! Handle errors
-            sendError(socket, "Invalid message format. If you tried to crash the server, you failed :D");
+            console.log("[SERVER] Error:", error);
+            sendError(
+                socket,
+                "Invalid message format. If you tried to crash the server, you failed :D"
+            );
             return;
         }
     });
@@ -151,23 +140,70 @@ server.on("error", (error) => {
 
 function handle(req: user, data: data) {
     switch (data.type) {
-        case "history": {
+        case "history":
             req.socket.send(
                 JSON.stringify({
                     type: "history",
-                    history: getHistory(),
+                    history: getHistory(data.limit),
                 })
             );
-        }
-        case "message": {
+            break;
+
+        case "motd":
+            req.socket.send(
+                JSON.stringify({
+                    type: "motd",
+                    motd: config.motd,
+                })
+            );
+            break;
+
+        case "command":
+            if (data.arguments.length > 0) {
+                switch (data.arguments[0]) {
+                    case "/help":
+                        req.socket.send(
+                            JSON.stringify({
+                                type: "message",
+                                user: "Server",
+                                id: "@@@@@@",
+                                message: "Commands: /help, /calc",
+                                color: getColor(config["server-color"]),
+                                date: new Date().getTime(),
+                            })
+                        );
+                        break;
+
+                    case "/calc":
+                        const result = Calculate(data.arguments[1]);
+                        addHistory(
+                            new Date().getTime(),
+                            "Server",
+                            "@@@@@@",
+                            `${data.arguments[1]} = ${result}`,
+                            getColor(config["server-color"])
+                        );
+                        server.clients.forEach((client) => {
+                            client.send(
+                                JSON.stringify({
+                                    type: "message",
+                                    user: "Server",
+                                    id: "@@@@@@",
+                                    message: `${data.arguments[1]} = ${result}`,
+                                    color: getColor(config["server-color"]),
+                                    date: new Date().getTime(),
+                                })
+                            );
+                        });
+                        break;
+                }
+            }
+            break;
+
+        case "message":
             if (data.message.length > 0) {
-                addHistory(
-                    new Date().getTime(),
-                    data.user,
-                    req.id,
-                    data.message,
-                    req.color,
-                )
+                const time = new Date().getTime();
+                addHistory(time, data.user, req.id, data.message, req.color);
                 users.forEach((user) => {
                     const self = user.socket == req.socket;
                     user.socket.send(
@@ -177,12 +213,12 @@ function handle(req: user, data: data) {
                             id: req.id,
                             message: data.message,
                             color: req.color,
-                            time: new Date().getTime(),
+                            date: time,
                             self: self,
                         })
-                    )
-                })
+                    );
+                });
+                break;
             }
-        }
     }
 }

@@ -1,5 +1,12 @@
 import { appendFile } from "fs";
 
+type color = {
+    red: number,
+    green: number,
+    blue: number,
+    error: boolean,
+}
+
 /* const ToLog: any[] = []; */
 const history: any[] = [];
 
@@ -15,11 +22,11 @@ function getHistory(limit = 100) {
 }
 
 function addHistory(
-    date: Date,
+    date: number,
     user: string,
     id: string,
     message: string,
-    color: string,
+    color: color,
 ) {
     history.push({
         type: "message",

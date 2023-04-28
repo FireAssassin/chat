@@ -1,3 +1,23 @@
+import { readFileSync, existsSync, writeFileSync } from "fs";
+import { parse, stringify } from "yaml";
+import * as Crypto from "crypto";
+
+const colors: string[] = [
+    "#fa2d2d",
+    "#fa4b00",
+    "#ffbb00",
+    "#c3ff00",
+    "#7bff00",
+    "#1eff00",
+    "#00ffc3",
+    "#00d5ff",
+    "#0073ff",
+    "#002fff",
+    "#6f00ff",
+    "#b300ff",
+    "#ff0084",
+    "#ff0051",
+];
 let config;
 
 const id = () => {
@@ -29,6 +49,7 @@ function readConfig() {
             "anyone-can-join": false,
             "max-users": 10,
             motd: "Welcome to the server",
+            "server-color": "#00FF00",
         };
         const file = stringify(config);
         writeFileSync("config.yaml", file);
@@ -68,9 +89,11 @@ function DateFormatJSON(date: Date) {
 
 function getColor(hex?) {
     if (hex === undefined) {
-        const red = Math.floor(Math.random() * 256);
-        const green = Math.floor(Math.random() * 256);
-        const blue = Math.floor(Math.random() * 256);
+        const random = Math.floor(Math.random() * colors.length);
+        const color = colors[random];
+        const red = parseInt(color.substr(1, 2), 16);
+        const green = parseInt(color.substr(3, 2), 16);
+        const blue = parseInt(color.substr(5, 2), 16);
         return { red: red, green: green, blue: blue, error: false };
     } else if (hex.length !== 7 && hex.length !== 6) {
         return { red: 0, green: 0, blue: 0, error: true };
