@@ -4,6 +4,8 @@ import { Calculate } from "./calc";
 import {
     id,
     sendError,
+    joined,
+    left,
     readConfig,
     getConfig,
     DateFormat,
@@ -81,6 +83,14 @@ server.on("connection", (socket, request) => {
                             socket: socket,
                             color: getColor(),
                         });
+                        joined(data.user, server.clients, config["server-color"]);
+                        addHistory(
+                            new Date().getTime(),
+                            "Server",
+                            "@@@@@@",
+                            `${data.user} joined`,
+                            getColor(config["server-color"]),
+                        )
                     }
                     let user = users.find((user) => user.socket == socket);
                     handle(user, data);
@@ -103,6 +113,14 @@ server.on("connection", (socket, request) => {
                         socket: socket,
                         color: getColor(),
                     });
+                    joined(data.user, server, config["server-color"]);
+                    addHistory(
+                        new Date().getTime(),
+                        "Server",
+                        "@@@@@@",
+                        `${data.user} joined`,
+                        getColor(config["server-color"]),
+                    )
                 } else {
                     sendError(socket, "Invalid username or password");
                     return;
@@ -126,6 +144,14 @@ server.on("connection", (socket, request) => {
         console.log(
             `[SERVER] Connection closed (${request.socket.remoteAddress})`
         );
+        left(users.find((user) => user.socket == socket).user, server, config["server-color"]);
+        addHistory(
+            new Date().getTime(),
+            "Server",
+            "@@@@@@",
+            `${users.find((user) => user.socket == socket).user} left`,
+            getColor(config["server-color"]),
+        )
         users = users.filter((user) => user.socket != socket);
     });
 });

@@ -2,6 +2,13 @@ const webSocket = require("ws");
 const fs = require("fs");
 const yaml = require("yaml");
 const readline = require("readline");
+const Player = require("@bhznjns/node-mp3-player");
+
+//* Initialize the audio player
+const player = new Player.default();
+player.volume = 0.5;
+player.src =
+    "https://cdn.discordapp.com/attachments/968804068233461781/1102587541485531239/1.mp3";
 
 const resetFormatString = `\x1b[0m`;
 let history = [];
@@ -9,6 +16,7 @@ let time = Date.now();
 let config;
 let typing = "";
 let motd = "";
+let isPlaying = false;
 
 const prompt = readline.createInterface({
     input: process.stdin,
@@ -50,6 +58,7 @@ function readConfig() {
         const defaultConfig = {
             host: "localhost",
             port: 8080,
+            secure: false,
             password: "password",
             "server-password": "password",
             user: "user",
@@ -122,7 +131,9 @@ function DateFormat(date) {
     return formatted;
 }
 
-const url = new URL(`ws:${config.host}:${config.port}`);
+const protocol = config.secure ? "wss" : "ws";
+
+const url = new URL(`${protocol}:${config.host}:${config.port}`);
 const client = new webSocket(url);
 
 client.on("open", () => {
@@ -166,6 +177,15 @@ client.on("message", (data) => {
         case "message":
             history.push(message);
             render();
+            if (config.sound && !message.self) {
+                if (!isPlaying) {
+                    player.play();
+                    isPlaying = true;
+                } else {
+                    player.stop();
+                    player.play();
+                }
+            }
             break;
 
         case "error":

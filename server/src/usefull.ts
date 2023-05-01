@@ -34,12 +34,40 @@ const sendError = (ws, error) => {
     ws.close();
 };
 
+const joined = (user: string, server, serverColor) => {
+    const message = JSON.stringify({
+        type: "message",
+        user: "Server",
+        id: "@@@@@@",
+        message: `${user} joined`,
+        color: getColor(serverColor),
+        date: new Date().getTime(),
+    });
+    server.clients.forEach((client) => {
+        client.send(message);
+    });
+};
+
+const left = (user: string, server, serverColor) => {
+    const message = JSON.stringify({
+        type: "message",
+        user: "Server",
+        id: "@@@@@@",
+        message: `${user} left`,
+        color: getColor(serverColor),
+        date: new Date().getTime(),
+    });
+    server.clients.forEach((client) => {
+        client.send(message);
+    });
+};
+
 function readConfig() {
     if (!existsSync("./config.yaml")) {
         console.log("[SERVER] Config file not found");
         console.log("[SERVER] Creating config file");
         const config: any = {
-            port: 8080,
+            port: 3525,
             "server-password": "password",
             "allowed-users": [
                 { user: "user1", password: "qazxsw" },
@@ -60,10 +88,30 @@ function readConfig() {
     const path = "./config.yaml";
     const file = readFileSync(path, "utf8");
     config = parse(file);
-    if ((config["anyone-can-join"] && config.private) || (!config["anyone-can-join"] && !config.private)) {
+    if (
+        (!config["anyone-can-join"] && !config.private) ||
+        config["max-users"] < 1 ||
+        config["max-users"] > 100
+    ) {
         console.log("[SERVER] Invalid config");
         console.log("[SERVER] Please edit the config file");
         process.exit(0);
+    }
+    // ! Check if allowed users doesn't have the same user
+    const users = [];
+    for (const user of config["allowed-users"]) {
+        if (users.includes(user.user)) {
+            console.log("[SERVER] Invalid config");
+            console.log("[SERVER] Please edit the config file");
+            process.exit(0);
+        }
+        users.push(user.user);
+    }
+    if (config.motd === undefined) {
+        config.motd = "Welcome to the server";
+    }
+    if (config["port"] === undefined) {
+        config["port"] = 3525;
     }
 }
 
@@ -110,4 +158,14 @@ function getColor(hex?) {
     }
 }
 
-export { id, sendError, readConfig, getConfig, DateFormat, DateFormatJSON, getColor };
+export {
+    id,
+    sendError,
+    joined,
+    left,
+    readConfig,
+    getConfig,
+    DateFormat,
+    DateFormatJSON,
+    getColor,
+};
