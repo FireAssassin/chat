@@ -17,8 +17,9 @@ Run:
 About config.yaml:
 - If you dont have a config.yaml run the program once and it will generate one for you.
 - Port is the port the server will run on.
-- To make server public set private to false.
-- To change the password of the server change the password in the config.yaml file.
+- To make server public (removes server password) set private to false
+- To remove need for setting access for specific users set anyone-can-join to true
+- To change the server-password of the server change the password in the config.yaml file.
 - For every user you want to add to the server add a new user with a unique name and password. 
     eg.:
     ```
@@ -52,7 +53,8 @@ About config.yaml:
 - SelfColor has to be a hex color code. (ex: #FF0000).
 - If you want color to be set by server(randomized) set SelfColor to any text eg. "a".
 - Host is the ip of the server you want to connect to. (ex: "localhost", "35.123.174.34").
-- ServerPassword is set by the server and is used to prevent random people from joining.
+- server-password is set by the server and is used to prevent random people from joining.
 - User is also set by the server and is used to prevent random people from joining.
 - date-format is the format of the date in the chat. (ex: "DD/MM/YYYY HH:mm:ss", "HH:mm:ss").
 - Change sound to true if you want to hear a sound when someone sends a message.
+- Changing property secure to true will make the client use wss instead of ws.
